@@ -18,7 +18,7 @@ architecture rtl of mucodec is
 
     signal note_byte : std_logic_vector(5 downto 0);
     signal note_order : std_logic := '0';
-    signal current_note_order : std_logic := '1';
+    signal next_note_order : std_logic := '1';
 begin
     -- dout <= note_order & '0' & note_byte;
 
@@ -31,49 +31,39 @@ begin
             if valid = '1' then
                 note_byte(5 downto 3) <= note_byte(2 downto 0);
                 note_byte(2 downto 0) <= din;
+                note_order <= next_note_order;
             end if;
-            note_order <= current_note_order;
         end if;
     end process;
 
     state_logic: process (valid)
         variable next_byte: std_logic_vector(5 downto 0);
     begin
+        if rising_edge(valid) then
+            next_note_order <= not note_order;
+        else
+            next_note_order <= note_order;
+        end if;
+
         next_byte := note_byte(2 downto 0) & din;
-
         next_state <= state;
-
         case(state) is
-            when St_ERROR =>
-                next_state <= St_RESET;
-            when St_WRITING =>
-                next_state <= St_LISTENING;
-            when others =>
-                null;
-        end case;
-
-        if valid = '1' then
-            current_note_order <= not note_order;
-            case(state) is
-                when St_RESET =>
-                    if next_byte = "000111" then
-                        next_state <= St_STARTING;
-                        current_note_order <= '1';
+            when St_RESET =>
+                if next_byte = "000111" then
+                    next_state <= St_STARTING;
+                    next_note_order <= '0';
+                end if;
+            when St_STARTING =>
+                if valid = '1' then
+                    if note_order = '1' and next_byte = "000111" then
+                        next_state <= St_LISTENING;
+                    elsif note_order = '0' and din /= "000" then
+                        next_state <= St_RESET;
                     end if;
-                when St_STARTING =>
+                end if;
+            when St_LISTENING =>
+                if valid = '1' then
                     if note_order = '1' then
-                        if din /= "000" then
-                            next_state <= St_RESET;
-                        end if;
-                    else
-                        if next_byte = "000111" then
-                            next_state <= St_LISTENING;
-                        else
-                            next_state <= St_RESET;
-                        end if;
-                    end if;
-                when St_LISTENING =>
-                    if note_order = '0' then
                         case(next_byte) is
                             when "111000" =>
                                 next_state <= St_ENDDING;
@@ -89,19 +79,25 @@ begin
                     elsif din = "000" then
                         next_state <= St_ERROR;
                     end if;
-                when St_ENDDING =>
-                    if note_order = '0' and next_byte = "111000" then
+                end if;
+            when St_ENDDING =>
+                if valid = '1' then
+                    if note_order = '1' and next_byte = "111000" then
                         next_state <= St_RESET;
-                    elsif note_order = '1' and din /= "111" then
+                    elsif note_order = '0' and din /= "111" then
                         next_state <= St_ERROR;
                     end if;
-                when others =>
-                    null;
-            end case;
-        end if;
+                end if;
+            when St_ERROR =>
+                next_state <= St_RESET;
+            when St_WRITING =>
+                next_state <= St_LISTENING;
+            when others =>
+                null;
+        end case;
     end process;
 
-    output_logic: process (state, note_byte)
+    output_logic: process (state)
     begin
         error <= '0';
         dvalid <= '0';
