@@ -23,39 +23,38 @@ architecture rtl of symb_det is
     signal note_clk : std_logic := '0';
     signal note_clk_counter : unsigned(11 downto 0) := x"000";
 
-    type state_type is (St_IDEL, St_STARTING, St_WAITING, St_LISTING, St_COUNTING, St_WRITING, St_WROTE);
+    type state_type is (St_IDEL, St_STARTING, St_WAITING, St_LISTING, St_COUNTING, St_WRITING);
     signal state, next_state : state_type := St_IDEL;
 
-    signal count : unsigned(7 downto 0);
+    signal freq_counter : unsigned(7 downto 0);
 begin
     signed_adc <= signed(adc_data);
 
     sync_process: process(clk, clr)
     begin
         if clr = '1' then
-            state <= St_STARTING;
+            state <= St_IDEL;
         elsif rising_edge(clk) then
-            state <= next_state;
-
-            case(state) is
-                when St_STARTING =>
-                    note_clk_counter <= x"000";
-                    count <= x"00";
-                when St_COUNTING =>
-                    count <= count + 1;
-                when St_WROTE =>
-                    count <= x"00";
-                when others =>
-                    null;
-            end case;
-
             -- gen note clk
-            if note_clk_counter = x"BB7" then
+            if note_clk_counter = x"BB7" then -- 2999
                 note_clk <= not note_clk;
                 note_clk_counter <= x"000";
             else
                 note_clk_counter <= note_clk_counter + 1;
             end if;
+
+            state <= next_state;
+            case(state) is
+                when St_STARTING =>
+                    note_clk <= '0';
+                    note_clk_counter <= x"000";
+                when St_WAITING =>
+                    freq_counter <= x"00";
+                when St_COUNTING =>
+                    freq_counter <= freq_counter + 1;
+                when others =>
+                    null;
+            end case;
         end if;
     end process;
 
@@ -68,7 +67,6 @@ begin
                     next_state <= St_STARTING;
                 end if;
             when St_STARTING =>
-                -- TODO: imporve starting logic
                 next_state <= St_WAITING;
             when St_WAITING =>
                 if rising_edge(note_clk) then
@@ -83,8 +81,6 @@ begin
                     next_state <= St_WRITING;
                 end if;
             when St_WRITING =>
-                next_state <= St_WROTE;
-            when St_WROTE =>
                 next_state <= St_WAITING;
             when others =>
                 null;
@@ -98,7 +94,7 @@ begin
         if state = St_WRITING then
             symbol_valid <= '1';
 
-            count_int := to_integer(count);
+            count_int := to_integer(freq_counter);
             case(count_int) is
                 when 164 to 255 =>
                     symbol_out <= "000";
