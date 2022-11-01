@@ -1,7 +1,7 @@
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
-use IEEE.NUMERIC_STD.ALL;
+use ieee.numeric_std.all;
 
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx leaf cells in this code.
@@ -17,7 +17,7 @@ entity symb_det is
           );
 end symb_det;
 
-architecture Behavioral of symb_det is
+architecture rtl of symb_det is
     signal squared_adc : std_logic;
     signal signed_adc : signed(11 downto 0);
     signal note_clk : std_logic := '0';
@@ -27,8 +27,6 @@ architecture Behavioral of symb_det is
     signal state, next_state : state_type := St_IDEL;
 
     signal count : unsigned(7 downto 0);
-    signal count_valid : std_logic;
-
 begin
     signed_adc <= signed(adc_data);
 
@@ -132,5 +130,5 @@ begin
             squared_adc <= '1';
         end if;
     end process;
-end Behavioral;
+end rtl;
 

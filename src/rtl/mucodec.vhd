@@ -20,8 +20,6 @@ architecture rtl of mucodec is
     signal note_order : std_logic := '0';
     signal next_note_order : std_logic := '1';
 begin
-    -- dout <= note_order & '0' & note_byte;
-
     sync_process: process (clk, clr)
     begin
         if clr = '1' then

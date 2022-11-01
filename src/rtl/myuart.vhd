@@ -8,7 +8,7 @@ use ieee.numeric_std.all;
 -- use UNISIM.VComponents.all;
 
 entity myuart is
-    Port (
+    port (
            din  : in std_logic_vector (7 downto 0);
            busy : out std_logic;
            wen  : in std_logic;
