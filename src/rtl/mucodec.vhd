@@ -37,10 +37,9 @@ begin
     state_logic: process (valid)
         variable next_byte: std_logic_vector(5 downto 0);
     begin
+        next_note_order <= note_order;
         if rising_edge(valid) then
             next_note_order <= not note_order;
-        else
-            next_note_order <= note_order;
         end if;
 
         next_byte := note_byte(2 downto 0) & din;
