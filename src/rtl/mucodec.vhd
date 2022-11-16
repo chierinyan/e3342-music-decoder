@@ -37,9 +37,13 @@ begin
     state_logic: process (valid)
         variable next_byte: std_logic_vector(5 downto 0);
     begin
-        next_note_order <= note_order;
-        if rising_edge(valid) then
-            next_note_order <= not note_order;
+        if state = St_RESET then
+            next_note_order <= '0';
+        else
+            next_note_order <= note_order;
+            if rising_edge(valid) then
+                next_note_order <= not note_order;
+            end if;
         end if;
 
         next_byte := note_byte(2 downto 0) & din;
@@ -48,7 +52,6 @@ begin
             when St_RESET =>
                 if next_byte = "000111" then
                     next_state <= St_STARTING;
-                    next_note_order <= '0';
                 end if;
             when St_STARTING =>
                 if valid = '1' then

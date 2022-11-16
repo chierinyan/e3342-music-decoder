@@ -6,7 +6,8 @@ entity musiccode_top is
     port (ain : in std_logic_vector(11 downto 0);
           clk : in std_logic;
           clr : in std_logic;
-          sout : out std_logic);
+          sout : out std_logic;
+          led  : out std_logic);
 end musiccode_top;
 
 architecture rtl of musiccode_top is
@@ -54,6 +55,7 @@ architecture rtl of musiccode_top is
     signal uart_ready, uart_busy : std_logic;
 begin
     uart_ready <= not uart_busy;
+    led <= uart_busy;
 
     symb_det_inst : symb_det port map(clk, clr, ain, symbol_valid, symbol_out);
 

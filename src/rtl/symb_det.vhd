@@ -28,7 +28,7 @@ architecture rtl of symb_det is
 
     signal freq_counter : unsigned(7 downto 0);
 begin
-    signed_adc <= signed(adc_data);
+    signed_adc <= signed(adc_data - x"800");
 
     sync_process: process(clk, clr)
     begin
@@ -58,12 +58,12 @@ begin
         end if;
     end process;
 
-    state_logic: process(state, adc_data, squared_adc, note_clk)
+    state_logic: process(state, squared_adc, note_clk)
     begin
         next_state <= state;
         case(state) is
             when St_IDEL =>
-                if signed_adc < -500 then
+                if rising_edge(squared_adc) then
                     next_state <= St_STARTING;
                 end if;
             when St_STARTING =>
