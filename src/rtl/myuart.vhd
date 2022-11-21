@@ -21,6 +21,7 @@ architecture rtl of myuart is
     type state_type is (St_IDLE, St_BUSY);
     signal state, next_state : state_type := St_IDLE;
 
+    signal wen_buffer : std_logic;
     signal din_buffer : std_logic_vector (7 downto 0);
     signal bit_seq, baud_timer : unsigned (3 downto 0) := x"0";
 begin
@@ -29,6 +30,7 @@ begin
         if clr = '1' then
             state <= St_IDLE;
         elsif rising_edge(clk) then
+            wen_buffer <= wen;
             state <= next_state;
 
             if state = St_IDLE then
@@ -57,7 +59,7 @@ begin
         next_state <= state;
         case(state) is
             when St_IDLE =>
-                if rising_edge(wen) then
+                if (wen = '1' and wen_buffer = '0') then
                     din_buffer <= din;
                     next_state <= St_BUSY;
                 end if;

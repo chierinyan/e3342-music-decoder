@@ -23,6 +23,7 @@ architecture rtl of musiccode_top is
               valid   : in std_logic;
               clr     : in std_logic;
               clk     : in std_logic;
+              led     : out std_logic;
               dout    : out std_logic_vector(7 downto 0);
               dvalid  : out std_logic;
               error   : out std_logic);
@@ -55,11 +56,10 @@ architecture rtl of musiccode_top is
     signal uart_ready, uart_busy : std_logic;
 begin
     uart_ready <= not uart_busy;
-    led <= uart_busy;
 
     symb_det_inst : symb_det port map(clk, clr, ain, symbol_valid, symbol_out);
 
-    mucodec_inst  : mucodec  port map(symbol_out, symbol_valid, clr, clk,
+    mucodec_inst  : mucodec  port map(symbol_out, symbol_valid, clr, clk, led,
                                       mucodec_out, mucodec_valid, mucodec_error);
 
     dpop_inst     : dpop     port map(mucodec_out, mucodec_valid, mucodec_error,

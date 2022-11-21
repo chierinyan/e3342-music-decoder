@@ -7,6 +7,7 @@ entity mucodec is
         valid  : in std_logic;
         clr    : in std_logic;
         clk    : in std_logic;
+        led    : out std_logic;
         dout   : out std_logic_vector(7 downto 0);
         dvalid : out std_logic;
         error  : out std_logic);
@@ -16,15 +17,19 @@ architecture rtl of mucodec is
     type state_type is (St_RESET, St_ERROR, St_STARTING , St_LISTENING, St_WRITING, St_ENDDING);
     signal state, next_state : state_type := St_RESET;
 
+    signal valid_buffer : std_logic;
     signal note_byte : std_logic_vector(5 downto 0);
     signal note_order : std_logic := '0';
     signal next_note_order : std_logic := '1';
 begin
+    led <= note_order;
+
     sync_process: process (clk, clr)
     begin
         if clr = '1' then
             state <= St_RESET;
         elsif rising_edge(clk) then
+            valid_buffer <= valid;
             state <= next_state;
             if valid = '1' then
                 note_byte(5 downto 3) <= note_byte(2 downto 0);
@@ -41,7 +46,7 @@ begin
             next_note_order <= '0';
         else
             next_note_order <= note_order;
-            if rising_edge(valid) then
+            if (valid = '1' and valid_buffer = '0') then
                 next_note_order <= not note_order;
             end if;
         end if;

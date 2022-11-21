@@ -19,8 +19,10 @@ end symb_det;
 
 architecture rtl of symb_det is
     signal squared_adc : std_logic;
+    signal squared_adc_buffer : std_logic;
     signal signed_adc : signed(11 downto 0);
     signal note_clk : std_logic := '0';
+    signal note_clk_buffer : std_logic := '0';
     signal note_clk_counter : unsigned(11 downto 0) := x"000";
 
     type state_type is (St_IDEL, St_STARTING, St_WAITING, St_LISTING, St_COUNTING, St_WRITING);
@@ -35,6 +37,9 @@ begin
         if clr = '1' then
             state <= St_IDEL;
         elsif rising_edge(clk) then
+            squared_adc_buffer <= squared_adc;
+            note_clk_buffer <= note_clk;
+
             -- gen note clk
             if note_clk_counter = x"BB7" then -- 2999
                 note_clk <= not note_clk;
@@ -58,26 +63,28 @@ begin
         end if;
     end process;
 
-    state_logic: process(state, squared_adc, note_clk)
+    state_logic: process(state, note_clk, squared_adc)
     begin
         next_state <= state;
         case(state) is
             when St_IDEL =>
-                if rising_edge(squared_adc) then
+                if (squared_adc = '1' and squared_adc_buffer = '0') then
                     next_state <= St_STARTING;
                 end if;
             when St_STARTING =>
-                next_state <= St_WAITING;
+                if (squared_adc = '1' and squared_adc_buffer = '0') then
+                    next_state <= St_WAITING;
+                end if;
             when St_WAITING =>
-                if rising_edge(note_clk) then
+                if (note_clk = '1' and note_clk_buffer = '0') then
                     next_state <= St_LISTING;
                 end if;
             when St_LISTING =>
-                if rising_edge(squared_adc) then
+                if (squared_adc = '1' and squared_adc_buffer = '0') then
                     next_state <= St_COUNTING;
                 end if;
             when St_COUNTING =>
-                if rising_edge(squared_adc) then
+                if (squared_adc = '1' and squared_adc_buffer = '0') then
                     next_state <= St_WRITING;
                 end if;
             when St_WRITING =>
@@ -118,7 +125,7 @@ begin
         end if;
     end process;
 
-    conv_adc: process(adc_data)
+    conv_adc: process(signed_adc)
     begin
         if signed_adc < -233 then
             squared_adc <= '0';

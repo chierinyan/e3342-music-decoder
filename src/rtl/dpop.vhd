@@ -15,6 +15,6 @@ architecture rtl of dpop is
 begin
     -- TODO
     dout <= din;
-    dout_valid <= din_valid and (not din_error);
+    dout_valid <= din_valid;
 end rtl;
 
