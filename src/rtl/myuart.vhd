@@ -22,7 +22,7 @@ architecture rtl of myuart is
     signal state, next_state : state_type := St_IDLE;
 
     signal wen_buffer : std_logic;
-    signal din_buffer : std_logic_vector (7 downto 0);
+    signal din_buffer : std_logic_vector (8 downto 0);
     signal bit_seq, baud_timer : unsigned (3 downto 0) := x"0";
 begin
     sync_process: process (clk, clr)
@@ -37,10 +37,7 @@ begin
                 bit_seq <= x"0";
                 baud_timer <= x"0";
             else
-                if wen = '1' then
-                    baud_timer <= x"0";
-                    bit_seq <= x"0";
-                elsif baud_timer = x"9" then
+                if baud_timer = x"9" then
                     baud_timer <= x"0";
                     if bit_seq = x"9" then
                         bit_seq <= x"0";
@@ -60,7 +57,7 @@ begin
         case(state) is
             when St_IDLE =>
                 if (wen = '1' and wen_buffer = '0') then
-                    din_buffer <= din;
+                    din_buffer <= din & "0";
                     next_state <= St_BUSY;
                 end if;
             when St_BUSY =>
@@ -81,12 +78,12 @@ begin
             when St_BUSY =>
                 busy <= '1';
                 case(bit_seq) is
-                    when x"0" | x"9" =>
+                    when x"0" =>
                         sout <= '0';
-                    when x"1" | x"2" | x"3" | x"4" | x"5" | x"6" | x"7" | x"8" =>
-                        sout <= din_buffer(to_integer(bit_seq - 1));
+                    when x"9" =>
+                        sout <= '1';
                     when others =>
-                        null;
+                        sout <= din_buffer(to_integer(bit_seq));
                 end case;
             when others =>
                 null;
