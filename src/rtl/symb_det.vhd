@@ -41,7 +41,7 @@ begin
             note_clk_buffer <= note_clk;
 
             -- gen note clk
-            if note_clk_counter = x"BB7" then -- 2999
+            if note_clk_counter = x"5DB" then -- 1499
                 note_clk <= not note_clk;
                 note_clk_counter <= x"000";
             else
