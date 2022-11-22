@@ -19,8 +19,7 @@ architecture rtl of mucodec is
 
     signal valid_buffer : std_logic;
     signal note_byte : std_logic_vector(5 downto 0);
-    signal note_order : std_logic := '0';
-    signal next_note_order : std_logic := '1';
+    signal note_order, note_order_buffer : std_logic := '1';
 begin
     led <= note_order;
 
@@ -29,67 +28,50 @@ begin
         if clr = '1' then
             state <= St_RESET;
         elsif rising_edge(clk) then
-            valid_buffer <= valid;
+            note_order_buffer <= note_order;
             state <= next_state;
-            if valid = '1' then
-                note_byte(5 downto 3) <= note_byte(2 downto 0);
-                note_byte(2 downto 0) <= din;
-                note_order <= next_note_order;
+
+            if (valid = '1' and valid_buffer = '0') then
+                note_byte <= note_byte(2 downto 0) & din;
+                if state = St_RESET then
+                    note_order <= '1';
+                else
+                    note_order <= not note_order;
+                end if;
             end if;
+            valid_buffer <= valid;
         end if;
     end process;
 
-    state_logic: process (valid)
-        variable next_byte: std_logic_vector(5 downto 0);
+    state_logic: process (note_byte, state)
     begin
-        if state = St_RESET then
-            next_note_order <= '0';
-        else
-            next_note_order <= note_order;
-            if (valid = '1' and valid_buffer = '0') then
-                next_note_order <= not note_order;
-            end if;
-        end if;
-
-        next_byte := note_byte(2 downto 0) & din;
         next_state <= state;
         case(state) is
             when St_RESET =>
-                if next_byte = "000111" then
+                if note_byte = o"07" then
                     next_state <= St_STARTING;
                 end if;
             when St_STARTING =>
-                if valid = '1' then
-                    if note_order = '1' and next_byte = "000111" then
+                if (note_order = '1' and note_order_buffer = '0') then
+                    if note_byte = o"07" then
                         next_state <= St_LISTENING;
-                    elsif note_order = '0' and din /= "000" then
+                    else
                         next_state <= St_RESET;
                     end if;
                 end if;
             when St_LISTENING =>
-                if valid = '1' then
-                    if note_order = '1' then
-                        case(next_byte) is
-                            when "111000" =>
-                                next_state <= St_ENDDING;
-                            when "010001" | "011001" | "100001" | "101001" | "110001" | "001010" |
-                                 "011010" | "100010" | "101010" | "110010" | "001011" | "010011" |
-                                 "100011" | "101011" | "110011" | "001100" | "010100" | "011100" |
-                                 "101100" | "110100" | "001101" | "010101" | "011101" | "100101" |
-                                 "110101" | "001110" | "010110" | "011110" | "100110" | "101110" =>
-                                next_state <= St_WRITING;
-                            when others =>
-                                next_state <= St_ERROR;
-                        end case;
-                    elsif din = "000" then
-                        next_state <= St_ERROR;
+                if (note_order = '1' and note_order_buffer = '0') then
+                    if note_byte = o"70" then
+                        next_state <= St_ENDDING;
+                    else
+                        next_state <= St_WRITING;
                     end if;
                 end if;
             when St_ENDDING =>
-                if valid = '1' then
-                    if note_order = '1' and next_byte = "111000" then
+                if (note_order = '1' and note_order_buffer = '0') then
+                    if note_byte = o"70" then
                         next_state <= St_RESET;
-                    elsif note_order = '0' and din /= "111" then
+                    else
                         next_state <= St_ERROR;
                     end if;
                 end if;
@@ -107,86 +89,75 @@ begin
         error <= '0';
         dvalid <= '0';
         case(state) is
-            when St_RESET =>
-                dout <= "10000000";
-            when St_ERROR =>
-                dout <= "10000001";
-                error <= '1';
-            when St_STARTING =>
-                dout <= "10000010";
-            when St_LISTENING =>
-                null;
+            when St_ERROR => error <= '1';
             when St_WRITING =>
                 dvalid <= '1';
                 case(note_byte) is
-                    when "001010" =>
-                        dout <= "01000001";
-                    when "001011" =>
-                        dout <= "01000010";
-                    when "001100" =>
-                        dout <= "01000011";
-                    when "001101" =>
-                        dout <= "01000100";
-                    when "001110" =>
-                        dout <= "01000101";
-                    when "010001" =>
-                        dout <= "01000110";
-                    when "010011" =>
-                        dout <= "01000111";
-                    when "010100" =>
-                        dout <= "01001000";
-                    when "010101" =>
-                        dout <= "01001001";
-                    when "010110" =>
-                        dout <= "01001010";
-                    when "011001" =>
-                        dout <= "01001011";
-                    when "011010" =>
-                        dout <= "01001100";
-                    when "011100" =>
-                        dout <= "01001101";
-                    when "011101" =>
-                        dout <= "01001110";
-                    when "011110" =>
-                        dout <= "01001111";
-                    when "100001" =>
-                        dout <= "01010000";
-                    when "100010" =>
-                        dout <= "01010001";
-                    when "100011" =>
-                        dout <= "01010010";
-                    when "100101" =>
-                        dout <= "01010011";
-                    when "100110" =>
-                        dout <= "01010100";
-                    when "101001" =>
-                        dout <= "01010101";
-                    when "101010" =>
-                        dout <= "01010110";
-                    when "101011" =>
-                        dout <= "01010111";
-                    when "101100" =>
-                        dout <= "01011000";
-                    when "101110" =>
-                        dout <= "01011001";
-                    when "110001" =>
-                        dout <= "01011010";
-                    when "110010" =>
-                        dout <= "00100001";
-                    when "110011" =>
-                        dout <= "00101110";
-                    when "110100" =>
-                        dout <= "00111111";
-                    when "110101" =>
-                        dout <= "00100000";
-                    when others =>
-                        dout <= "11111111";
-                        dvalid <= '0';
+                    when o"00" => dout <= "00110000";
+                    when o"01" => dout <= "00110001";
+                    when o"02" => dout <= "00110010";
+                    when o"03" => dout <= "00110011";
+                    when o"04" => dout <= "00110100";
+                    when o"05" => dout <= "00110101";
+                    when o"06" => dout <= "00110110";
+                    when o"10" => dout <= "00001010";
+                    when o"11" => dout <= "00001001";
+                    when o"12" => dout <= "01000001";
+                    when o"13" => dout <= "01000010";
+                    when o"14" => dout <= "01000011";
+                    when o"15" => dout <= "01000100";
+                    when o"16" => dout <= "01000101";
+                    when o"17" => dout <= "00101011";
+                    when o"20" => dout <= "01000000";
+                    when o"21" => dout <= "01000110";
+                    when o"22" => dout <= "00111010";
+                    when o"23" => dout <= "01000111";
+                    when o"24" => dout <= "01001000";
+                    when o"25" => dout <= "01001001";
+                    when o"26" => dout <= "01001010";
+                    when o"27" => dout <= "00101101";
+                    when o"30" => dout <= "00100011";
+                    when o"31" => dout <= "01001011";
+                    when o"32" => dout <= "01001100";
+                    when o"33" => dout <= "00111011";
+                    when o"34" => dout <= "01001101";
+                    when o"35" => dout <= "01001110";
+                    when o"36" => dout <= "01001111";
+                    when o"37" => dout <= "00101010";
+                    when o"40" => dout <= "00100100";
+                    when o"41" => dout <= "01010000";
+                    when o"42" => dout <= "01010001";
+                    when o"43" => dout <= "01010010";
+                    when o"44" => dout <= "01011011";
+                    when o"45" => dout <= "01010011";
+                    when o"46" => dout <= "01010100";
+                    when o"47" => dout <= "00101111";
+                    when o"50" => dout <= "00100101";
+                    when o"51" => dout <= "01010101";
+                    when o"52" => dout <= "01010110";
+                    when o"53" => dout <= "01010111";
+                    when o"54" => dout <= "01011000";
+                    when o"55" => dout <= "01011101";
+                    when o"56" => dout <= "01011001";
+                    when o"57" => dout <= "01011110";
+                    when o"60" => dout <= "00100110";
+                    when o"61" => dout <= "01011010";
+                    when o"62" => dout <= "00100001";
+                    when o"63" => dout <= "00101100";
+                    when o"64" => dout <= "00111111";
+                    when o"65" => dout <= "00100000";
+                    when o"66" => dout <= "01011111";
+                    when o"67" => dout <= "00111101";
+                    when o"71" => dout <= "00110111";
+                    when o"72" => dout <= "00111000";
+                    when o"73" => dout <= "00111001";
+                    when o"74" => dout <= "00111100";
+                    when o"75" => dout <= "00111110";
+                    when o"76" => dout <= "00101000";
+                    when o"77" => dout <= "00101001";
+                    when others => null;
                 end case;
-            when St_ENDDING =>
-                dout <= "10000100";
-            when others =>
-                dout <= "10000101";
+            when others => null;
         end case;
     end process;
 end rtl;

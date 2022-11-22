@@ -3,23 +3,17 @@
 import numpy as np
 from scipy.io import wavfile
 
+from gen_lut import CODE_TABLE
+
 FREQ = 32
 SAMPLE_RATE = 96000
 NOTES = np.array([523.25, 659.25, 783.99, 987.77, 1174.66, 1396.91, 1760.00, 2093.00])
-CODE_TABLE = {
-    'A': '12', 'B': '13', 'C': '14', 'D': '15', 'E': '16',
-    'F': '21', 'G': '23', 'H': '24', 'I': '25', 'J': '26',
-    'K': '31', 'L': '32', 'M': '34', 'N': '35', 'O': '36',
-    'P': '41', 'Q': '42', 'R': '43', 'S': '45', 'T': '46',
-    'U': '51', 'V': '52', 'W': '53', 'X': '54', 'Y': '56',
-    'Z': '61', '!': '62', '.': '63', '?': '64', ' ': '65'
-}
 
 # for txt only
 AMPLITUDE = 2 ** 11 - 1
 NOISE_MU, NOISE_SIGMA = 0, 0.05 # gaussian noice
 
-PLAIN_TEXT = 'LATTE IS THE BEST!'
+PLAIN_TEXT = '[ELEC-3342]@<HKU> IS THE BEST ^_^\tBUT I **HATE** VHDL :(\n'
 WAV = True
 TXT = True
 
