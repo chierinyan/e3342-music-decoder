@@ -52,7 +52,7 @@ begin
             case(state) is
                 when St_STARTING =>
                     note_clk <= '0';
-                    note_clk_counter <= x"000";
+                    note_clk_counter <= x"00a";
                 when St_WAITING =>
                     freq_counter <= x"00";
                 when St_COUNTING =>
